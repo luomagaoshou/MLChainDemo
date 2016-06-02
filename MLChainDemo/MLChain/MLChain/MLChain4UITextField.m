@@ -1034,21 +1034,7 @@ return weakSelf;
 };
 }
 
-- (MLChainParamBlock4UITextField)selectAll{
-__weak typeof(self) weakSelf = self;
-return ^ MLChain4UITextField *(id firstObject, ...){
-NSString *selName = @"selectAll:";
-__strong typeof(weakSelf) strongSelf = weakSelf;
-id chainObject = [strongSelf objectOfChainMaker];
-va_list arglist;
-va_start(arglist, firstObject);
-NSArray *arguments = [NSObject argumentsWithTarget:chainObject selectorName:selName arglist:arglist firstObject:firstObject];
-va_end(arglist);
-[NSObject excuteSettingWithTarget:chainObject selectorName:selName configArguments:arguments];
 
-return weakSelf;
-};
-}
 
 - (MLChainParamBlock4UITextField)clearsOnInsertion{
 __weak typeof(self) weakSelf = self;

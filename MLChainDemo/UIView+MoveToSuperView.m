@@ -9,5 +9,8 @@
 #import "UIView+MoveToSuperView.h"
 
 @implementation UIView (MoveToSuperView)
-
+- (void)moveToSuperview:(UIView *)superview
+{
+    [superview addSubview:self];
+}
 @end

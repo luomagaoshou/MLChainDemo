@@ -9,5 +9,5 @@
 #import <UIKit/UIKit.h>
 
 @interface UIView (MoveToSuperView)
-
+- (void)moveToSuperview:(UIView *)superview;
 @end

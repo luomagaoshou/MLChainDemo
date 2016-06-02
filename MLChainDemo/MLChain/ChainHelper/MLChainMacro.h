@@ -21,6 +21,9 @@ static inline id _ml_chain_MASBoxValue(const char *type, ...) {
     if (strcmp(type, @encode(id)) == 0) {
         id actual = va_arg(v, id);
         obj = actual;
+    } else if (strcmp(type, @encode(SEL)) == 0){
+        SEL actual = va_arg(v, SEL);
+        obj = NSStringFromSelector(actual);
     } else if (strcmp(type, @encode(CGPoint)) == 0) {
         CGPoint actual = (CGPoint)va_arg(v, CGPoint);
         obj = [NSValue value:&actual withObjCType:type];
