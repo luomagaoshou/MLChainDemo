@@ -58,7 +58,7 @@
         @throw exception;
         
     }
-    NSLog(@"%@", resultStr);
+   // NSLog(@"%@", resultStr);
     return resultStr;
     
 }

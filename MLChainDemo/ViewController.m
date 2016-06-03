@@ -38,7 +38,9 @@
     [self.view addSubview:view2];
 
     //使用类方法进行设置，需要注意的是使用类方法ml_make是没有代码提示的，不是很方便的一点
-    UIView.ml_make.backgroundColor([UIColor grayColor]).frame_(50, 340, 100, 100).moveToSuperview(self.view);
+    UIView.ml_make.backgroundColor([UIColor grayColor]).
+    frame_(50, 340, 100, 100).
+    moveToSuperview(self.view);
     
     
     //两个参数以上的方法用下划线(_)作为分割符
