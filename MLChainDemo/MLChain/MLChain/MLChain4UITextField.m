@@ -1034,8 +1034,6 @@ return weakSelf;
 };
 }
 
-
-
 - (MLChainParamBlock4UITextField)clearsOnInsertion{
 __weak typeof(self) weakSelf = self;
 return ^ MLChain4UITextField *(id firstObject, ...){

@@ -26,9 +26,9 @@
     [NSObject ml_chainCreateChainFileWithClassNames:@[[UITableView class], [CALayer class], [CABasicAnimation class], [UIButton class], [UITextField class]]];
 #endif
     
-    
+
     UIView *view1 = [[UIView alloc] init];
-    //实例调用
+    //创建实例后调用
     view1.ml_make.backgroundColor([UIColor orangeColor]).
     frame(CGRectMake(50, 100, 100, 100));
     [self.view addSubview:view1];
@@ -72,11 +72,24 @@
     moveToSuperview(self.view);
     
     
-    //对于
+    //对于CALayer这种比较底层的框架，部分参数用会所不同，如此时backgroudColor不需要转成CGColor
     CALayer *layer =  CALayer.ml_make.frame_(290, 100, 100, 100).backgroundColor([UIColor purpleColor]).layer;
     [self.view.layer addSublayer:layer];
     
-  
+    //动画
+    CABasicAnimation *basicAni = [CABasicAnimation animation];
+    basicAni.ml_make.keyPath(@"transform.scale").
+    lookUpMakerOfCABasicAnimation.
+    fromValue(@(0.5)).
+    toValue(@(2.0)).
+    fillMode(kCAFillModeForwards).
+    repeatCount(MAXFLOAT).
+    duration(1).
+    autoreverses(YES);
+    layer.ml_make.addAnimation_forKey(basicAni, @"动画");
+    
+    
+    
 }
 - (void)buttonClicked:(UIButton *)button
 {

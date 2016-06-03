@@ -443,6 +443,7 @@
         if ([NSStringFromClass(self) hasPrefix:@"MLChain4"]) {
             continue;
         }
+        //过滤方法
         if ([selName hasPrefix:@"ml_"]) {
             continue;
         }
@@ -461,6 +462,7 @@
         NSMethodSignature *methodSignature = nil;
         @try {
           methodSignature  = [self instanceMethodSignatureForSelector:sel];
+          
         } @catch (NSException *exception) {
             
         } @finally {
@@ -474,7 +476,7 @@
 #endif
         const char *returnType = [methodSignature methodReturnType];
         if (strcmp(&returnType[0], "v") == 0) {
-            //重名只添加一次
+           
             if (![resultSelNames containsObject:selName]) {
                  [resultSelNames addObject:selName];
             }
