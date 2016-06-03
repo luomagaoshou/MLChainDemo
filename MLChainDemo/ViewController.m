@@ -75,8 +75,8 @@
     
     
     //对于CALayer这种比较底层的框架，部分参数用会所不同，如此时backgroudColor不需要转成CGColor
-    CALayer *layer =  CALayer.ml_make.frame_(290, 100, 100, 100).backgroundColor([UIColor purpleColor]).layer;
-    [self.view.layer addSublayer:layer];
+    CALayer *layer1 =  CALayer.ml_make.frame_(290, 100, 100, 100).backgroundColor([UIColor purpleColor]).layer;
+    [self.view.layer addSublayer:layer1];
     
     //动画
     CABasicAnimation *basicAni = [CABasicAnimation animation];
@@ -88,9 +88,18 @@
     repeatCount(MAXFLOAT).
     duration(1).
     autoreverses(YES);
-    layer.ml_make.addAnimation_forKey(basicAni, @"动画");
+    layer1.ml_make.addAnimation_forKey(basicAni, @"动画");
     
+    //使用block统一设置，相关属性放在同一行进行设置，增加可读性
+    CALayer *layer2 = [CALayer layer];
+    [layer2 ml_makeConfigs:^(MLChain4CALayer *maker) {
+        maker.frame_(290, 220, 100, 100);
+        maker.backgroundColor([UIColor brownColor]);
+        maker.shadowRadius(20).shadowOff_(50, 50).shadowColor([UIColor blueColor]).shadowOpacity(1);
+        
+    }];
     
+    [self.view.layer addSublayer:layer2];
     
 }
 - (void)buttonClicked:(UIButton *)button
