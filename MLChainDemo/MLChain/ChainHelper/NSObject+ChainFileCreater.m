@@ -7,79 +7,342 @@
 //
 
 #import "NSObject+ChainFileCreater.h"
-#import "NSObject+ChainMethod.h"
-#import "NSObject+ChainInvocation.m"
 #import "NSObject+CreateCode.h"
-#import "NSString+Class.h"
 #import "NSFileManager+ML_Tools.h"
-#import "NSString+Class.h"
+#import <objc/runtime.h>
+#import <UIKit/UIKit.h>
+#import <CoreFoundation/CoreFoundation.h>
+#import "NSObject+ChainInfoAdaptor.h"
+#import "NSObject+RunTimeHelper.h"
+@interface MLChainStructModel:NSObject
+@property (nonatomic, copy) NSString *structName;
+@property (nonatomic, copy) NSString *encodeTypeString;
+@property (nonatomic, copy) NSString *makePrefixString;
++ (instancetype)modelWithStructName:(NSString *)structName encodeTypeString:(NSString *)encodeTypeString makePrefixString:(NSString *)makePrefixString;
++ (NSString *)makePrefixStringWithencodeTypeString:(NSString *)encodeTypeString;
+@end
+@implementation MLChainStructModel
++ (NSString *)makePrefixStringWithencodeTypeString:(NSString *)encodeTypeString{
+    for (MLChainStructModel *model in [MLChainStructModel structModels]) {
+        if ([model.encodeTypeString isEqualToString:encodeTypeString]) {
+            return model.makePrefixString;
+            break;
+        }
+    }
+    return nil;
+}
++ (instancetype)modelWithStructName:(NSString *)structName
+                   encodeTypeString:(NSString *)encodeTypeString
+                   makePrefixString:(NSString *)makePrefixString
+{
+    MLChainStructModel *model = [[MLChainStructModel alloc] init];
+    model.structName = structName;
+    model.encodeTypeString = encodeTypeString;
+    model.makePrefixString = makePrefixString;
+    return model;
+}
+
++ (NSArray *)structModels
+{
+    
+    static  NSArray *structModels = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        structModels = [[NSMutableArray alloc] init];
+        MLChainStructModel *model1 = [MLChainStructModel modelWithStructName:@"CGPoint" encodeTypeString:[NSString stringWithUTF8String:@encode(CGPoint)]  makePrefixString:@"CGPointMake"];
+        
+        MLChainStructModel *model2 = [MLChainStructModel modelWithStructName:@"CGSize" encodeTypeString:[NSString stringWithUTF8String:@encode(CGSize)]  makePrefixString:@"CGSizeMake"];
+        
+        MLChainStructModel *model3 = [MLChainStructModel modelWithStructName:@"CGRect" encodeTypeString:[NSString stringWithUTF8String:@encode(CGRect)]  makePrefixString:@"CGRectMake"];
+        
+        MLChainStructModel *model4 = [MLChainStructModel modelWithStructName:@"CGAffineTransform" encodeTypeString:[NSString stringWithUTF8String:@encode(CGAffineTransform)]  makePrefixString:@"CGAffineTransformMake"];
+        
+        MLChainStructModel *model5 = [MLChainStructModel modelWithStructName:@"CATransform3D" encodeTypeString:[NSString stringWithUTF8String:@encode(CATransform3D)]  makePrefixString:nil];
+        
+        MLChainStructModel *model6 = [MLChainStructModel modelWithStructName:@"NSRange" encodeTypeString:[NSString stringWithUTF8String:@encode(NSRange)]  makePrefixString:@"NSMakeRange"];
+        
+        MLChainStructModel *model7 = [MLChainStructModel modelWithStructName:@"UIOffset" encodeTypeString:[NSString stringWithUTF8String:@encode(UIOffset)]  makePrefixString:@"UIOffsetMake"];
+        MLChainStructModel *model8 = [MLChainStructModel modelWithStructName:@"UIEdgeInsets" encodeTypeString:[NSString stringWithUTF8String:@encode(UIEdgeInsets)]  makePrefixString:@"UIEdgeInsetsMake"];
+        
+        structModels = @[model1, model2, model3, model4, model5, model6 ,model7 ,model8];
+    });
+    
+    return structModels;
+}
+
+@end
+
+
+
+
+
+
 @implementation NSObject (ChainFileCreater)
 
-+ (void)ml_chainCreateChainFileWithClassNames:(NSArray *)classNames
++ (void)mlc_chainCreateChainFileWithClassNames:(NSArray *)classNames
 {
-    classNames = [self ml_classNamesToStringWithClassNames:classNames];
-    
-    [self ml_createChainFileOfChainMakerWithClassNames:classNames];
-    [self ml_createChainFileOfCategoryWithClassNames:classNames];
-    [self ml_createChainFileOfMLChainHeaderFileWithClassNames:classNames];
+    [self mlc_chainCreateChainFileWithClassNames:classNames superClassTogether:YES];
     
     
 }
 
++ (void)mlc_chainCreateChainFileWithClassNames:(NSArray *)classNames superClassTogether:(BOOL)superClassTogether{
+    
+    classNames = [self mlc_classNamesToStringWithClassNames:classNames uperClassTogether:superClassTogether];
+    
+    [self mlc_createChainFileOfChainMakerWithClassNames:classNames];
+    
+    [self ml_createChainFileOfCategoryWithClassNames:classNames];
+    
+    [self ml_createChainFileOfMLChainHeaderFileWithClassNames:classNames];
+}
 
-+ (void)ml_createChainFileOfChainMakerWithClassNames:(NSArray *)classNames
+
+
++ (NSString *)mlc_methodStringInCategory
+{
+    NSMutableString *resultString = [[NSMutableString alloc] init];
+    NSString *methodString1 = [NSString stringWithFormat:@"+ (MLChain4%@ *)ml_make;\n\n", NSStringFromClass(self)];
+    NSString *methodString2 = [NSString stringWithFormat:@"- (MLChain4%@ *)ml_make;\n\n", NSStringFromClass(self)];
+    NSString *methodString3 = [NSString stringWithFormat:@"- (MLChain4%@ *)ml_makeConfigs:(void(^)(MLChain4%@ *maker))block;\n\n", NSStringFromClass(self), NSStringFromClass(self)];
+    
+    [resultString appendString:methodString1];
+    [resultString appendString:methodString2];
+    [resultString appendString:methodString3];
+    
+    return resultString;
+    
+}
+
++ (NSString *)mlc_implementationStringInCategory
+{
+    
+    NSMutableString *resultString = [[NSMutableString alloc] init];
+    
+    if (self == [NSObject class]) {
+        NSString *implementationString1 =
+        [NSString stringWithFormat:
+         @"+ (MLChain4%@ *)ml_make {\
+         \n\
+         \n    id chainBridge = [self mlc_chainBridge];\
+         \n    return chainBridge;\
+         \n\
+         \n}\n", NSStringFromClass(self)];
+        NSString *implementationString2 =
+        [NSString stringWithFormat:
+         @"- (MLChain4%@ *)ml_make {\
+         \n\
+         \n    id chainBridge = [self mlc_chainBridge];\
+         \n    return chainBridge;\
+         \n\
+         \n}\n", NSStringFromClass(self)];
+        NSString *implementationString3 =
+        [NSString stringWithFormat:
+         @"- (MLChain4%@ *)ml_makeConfigs:(void(^)(MLChain4%@ *maker))block{\
+         \n\
+         \n    id chainBridge = [self mlc_chainBridge];\
+         \n   block(chainBridge);\
+         \n   return chainBridge;\
+         \n\
+         \n}\n", NSStringFromClass(self), NSStringFromClass(self)];
+        
+        [resultString appendString:implementationString1];
+        [resultString appendString:implementationString2];
+        [resultString appendString:implementationString3];
+        
+        
+    }else{
+        NSString *implementationString1 =
+        [NSString stringWithFormat:
+         @"+ (MLChain4%@ *)ml_make {\
+         \n\
+         \n   return (id)[super ml_make];\
+         \n\
+         \n}\n", NSStringFromClass(self)];
+        NSString *implementationString2 =
+        [NSString stringWithFormat:
+         @"- (MLChain4%@ *)ml_make {\
+         \n\
+         \n   return (id)[super ml_make];\
+         \n\
+         \n}\n", NSStringFromClass(self)];
+        NSString *implementationString3 =
+        [NSString stringWithFormat:
+         @"- (MLChain4%@ *)ml_makeConfigs:(void(^)(MLChain4%@ *maker))block{\
+         \n\
+         \n   MLChain4%@ *chainBridge = self.ml_make;\
+         \n   block(chainBridge);\
+         \n   return chainBridge;\
+         \n\
+         \n}\n", NSStringFromClass(self), NSStringFromClass(self), NSStringFromClass(self)];
+        [resultString appendString:implementationString1];
+        [resultString appendString:implementationString2];
+        [resultString appendString:implementationString3];
+    }
+    
+    
+    
+    return resultString;
+}
+
+
+
++ (NSString *)mlc_methodStringsOfNoReturnSelName
+{
+    
+    NSArray *noReturnSelNames = [self mlc_noReturnValueSelNames];
+    return [self mlc_methodStringsOfNoReturnSelName:noReturnSelNames];
+    
+}
+
++ (NSString *)mlc_methodStringsOfNoReturnSelName:(NSArray *)noReturnSelNames
+{
+    
+    NSMutableArray *methodAndMacroStrings = [[NSMutableArray alloc] init];
+    for (NSString *selName in noReturnSelNames) {
+        
+        NSString *methodAndMacroString = [self mlc_selNameAndMacroDefineWithSelName:selName];
+        
+        if (methodAndMacroStrings) {
+            [methodAndMacroStrings addObject:methodAndMacroString];
+        }
+    }
+    
+    NSString *resultString = [methodAndMacroStrings componentsJoinedByString:@"\n"];
+    
+    NSLog(@"================\n\n\n\n\n%@\n\n\n\n\n================", resultString);
+    return resultString;
+}
+
+/**
+ *  链式方法与宏定义
+ *
+ *  @param selName <#selName description#>
+ *
+ *  @return <#return value description#>
+ */
++ (NSString *)mlc_selNameAndMacroDefineWithSelName:(NSString *)selName
+{
+    
+    NSString *chainSelName = [self mlc_chainSelNameWithOringalSelName:selName];
+    NSString *macroDefineString = [self mlc_macroDefineStringWithSelName:selName chainSelName:chainSelName];
+    
+    NSMutableString *resultString = [[NSMutableString alloc] init];
+    if (macroDefineString) {
+        [resultString appendString:macroDefineString];
+    }
+    
+    NSString *getterString = [NSString stringWithFormat:@"- (MLChain4%@ *(^)())%@;", NSStringFromClass([self class]), chainSelName];
+    [resultString appendFormat:@"%@\n",getterString];
+    
+    
+    
+    return resultString;
+}
+
+/**
+ *  生成链式宏定义(参数非对象时需要)
+ *
+ *  @param selName      <#selName description#>
+ *  @param chainSelName <#chainSelName description#>
+ *
+ *  @return <#return value description#>
+ */
++ (NSString *)mlc_macroDefineStringWithSelName:(NSString *)selName chainSelName:(NSString *)chainSelName
+{
+    
+    NSMethodSignature *methodSignature = [self instanceMethodSignatureForSelector:NSSelectorFromString(selName)];
+    NSUInteger numberOfArguments = [methodSignature numberOfArguments];
+    NSMutableString *resultStr = [[NSMutableString alloc] init];
+    
+    NSString *macroDefineString = [NSString stringWithFormat: @"#ifndef %@\
+                                   \n#define %@(...)  %@(@\"%@\", __VA_ARGS__)\
+                                   \n#endif\n", chainSelName, chainSelName, chainSelName, selName];
+    
+    [resultStr appendString:macroDefineString];
+    if (numberOfArguments == 3) {
+        
+        const char *type = [methodSignature getArgumentTypeAtIndex:2];
+        if (*type == '{') {
+            NSString *encodeTypeString = [NSString stringWithUTF8String:type];
+            NSString *structMakePrefixStr = [MLChainStructModel makePrefixStringWithencodeTypeString:encodeTypeString];
+            NSString *structBoxStr =
+            [NSString stringWithFormat:
+             @"#ifndef %@_\
+             \n#define %@_(...)  %@(%@(__VA_ARGS__))\
+             \n#endif\n", chainSelName, chainSelName, chainSelName, structMakePrefixStr];
+            [resultStr appendString:structBoxStr];
+        }
+        
+ 
+    }
+    
+    
+    NSString *explanationStr =
+    [NSString stringWithFormat:@"/**     类名: %@\
+                                \n%@\
+     */\n",NSStringFromClass(self), [self mlc_selExplanationStrWithSelName:selName andMethodSignature:methodSignature]];
+  
+    [resultStr appendString:explanationStr];
+    return resultStr;
+    
+}
+
+
+- (NSString *)mlc_selExplanationStrWithSelName:(NSString *)selName andMethodSignature:(NSMethodSignature *)methodSignature{
+    if (methodSignature.numberOfArguments > 2) {
+        NSMutableString *resultStr = [[NSMutableString alloc] initWithString:@"SEL: "];
+        
+        NSArray *subSelStrs = [selName componentsSeparatedByString:@":"];
+        for (NSInteger i = 0; i < subSelStrs.count - 1; i++) {
+            const char *type = [methodSignature getArgumentTypeAtIndex:i + 2];
+           NSString *subSelStr = subSelStrs[i];
+            [resultStr appendFormat:@"  %@: '%c'\r\n", subSelStr, *type];
+        }
+       
+        return resultStr;
+    }else{
+        return [@"SEL: " stringByAppendingString:selName];
+    }
+    
+}
+
+
++ (void)mlc_createChainFileOfChainMakerWithClassNames:(NSArray *)classNames
 {
     for (NSString *className in classNames) {
-        NSString *property = [NSClassFromString(className) objectPropertyNameInChainMaker];
         
-        NSString *chainMethodString = [NSClassFromString(className) mlChain_allMethodStringsForNoReturnSelName];
-        NSString *classDeclearString = @"";
-        if ([className isEqualToString:@"NSObject"]) {
-            classDeclearString = [NSObject mlChain_classDeclearStringOfNSObjectWithClassNames:classNames];
-        }
+        NSString *hfileContentString = [self _hFileContentStrWithClassName:className];
         
-        NSString *hfileContentString;
-        if ([className isEqualToString:@"NSObject"]) {
-            
-            NSString *lookUpMakerString = [NSObject mlChain_lookUpMakerMethodStringOfNSObjectWithClassNames:classNames];
-            hfileContentString  = [NSString stringWithFormat:@"@property (nonatomic, strong)%@ *%@;\n%@\n%@", className, property, lookUpMakerString, chainMethodString];
-        }else{
-            hfileContentString  = [NSString stringWithFormat:@"@property (nonatomic, strong)%@ *%@;\n%@", className, property, chainMethodString];
-        }
-        
+        NSString *mfileContentString = [self _mFileContentStrWithClassName:className];
         
         
         NSString *XcodeCreateCodeDirectory = [[NSFileManager macDeskTopDiretory] stringByAppendingPathComponent:@"MLChain"];
-        NSString *chainImplementationString = [NSClassFromString(className) mlChain_allImplementationStringsOfInvocatioTypeForNoReturnSelName];
-        NSString *mfileContentString;
-        if ([className isEqualToString:@"NSObject"]) {
-            NSString *lookUpMakerImplementationString = [NSObject mlChain_lookUpMakerImplementationStringOfNSObjectWithClassNames:classNames];
-            
-            mfileContentString = [NSString stringWithFormat:@"%@\n%@\n", lookUpMakerImplementationString, chainImplementationString];
-        }else{
-            mfileContentString = chainImplementationString;
-        }
+        
         
         NSString *chainClassName = [NSString stringWithFormat:@"MLChain4%@", className];
         NSString *chainSuperClassName = nil;
         
-        if ([className ml_superClassNameFromSelf]) {
+        NSArray *hFileImportFileNames = nil;
+        if (MLCSuperClassNameOfClassName(className)) {
             chainSuperClassName = [NSString stringWithFormat:@"MLChain4%@", NSStringFromClass([NSClassFromString(className) superclass])];
         }else{
             chainSuperClassName = @"NSObject";
+            hFileImportFileNames = @[@"MLCFileHeader"];
         }
         
-        ML_CreateCodeModel *model =
-        [ML_CreateCodeModel modelWithClassName:chainClassName
+        MLCCreateCodeModel *model =
+        [MLCCreateCodeModel modelWithClassName:chainClassName
                                 superclassName:chainSuperClassName
-                          hFileImportFileNames:@[@"MLChainMacro"]
+                          hFileImportFileNames:hFileImportFileNames
                             hFileContentString:hfileContentString
                           mFileImportFileNames:nil
                             mFileContentString:mfileContentString
-                                    moreConfig:^(ML_CreateCodeModel *modelOfSelf) {
-                                        modelOfSelf.typedefString = [NSString stringWithFormat:@"ml_chain_block_maker(%@);",className];
-                                        modelOfSelf.classDeclearString = classDeclearString;
+                                    moreConfig:^(MLCCreateCodeModel *modelOfSelf) {
                                         
+                                        modelOfSelf.mFileStringBeforeImplementation = @"#pragma clang diagnostic push\
+\n#pragma clang diagnostic ignored \"-Wincomplete-implementation\"";
+                                        modelOfSelf.mFileStringAfterEnd = @"#pragma clang diagnostic pop";
                                     }];
         
         [[NSFileManager defaultManager] writefileString:model.hFileResultString ToFileWithDiretory:XcodeCreateCodeDirectory fileName:chainClassName fileType:kML_CreateCodeFileType_h moveToTrashWhenFileExists:YES];
@@ -87,32 +350,32 @@
         [[NSFileManager defaultManager] writefileString:model.mFileResultString ToFileWithDiretory:XcodeCreateCodeDirectory fileName:chainClassName fileType:kML_CreateCodeFileType_m moveToTrashWhenFileExists:YES];
     }
     
-
+    
 }
 + (void)ml_createChainFileOfCategoryWithClassNames:(NSArray *)classNames
 {
     //category
     for (NSString *className in classNames) {
         
-        NSString *chainMethodString = [NSClassFromString(className) mlChain_methodStringInCategory];
+        NSString *ChainMethodConntenting = [NSClassFromString(className) mlc_methodStringInCategory];
         
         NSString *XcodeCreateCodeDirectory = [[NSFileManager macDeskTopDiretory] stringByAppendingPathComponent:@"MLChain"];
-        NSString *chaingImplementationString = [NSClassFromString(className) mlChain_ImplementationStringInCategory];
+        NSString *chaingImplementationString = [NSClassFromString(className) mlc_implementationStringInCategory];
         
         
         
-        NSString *chainSuperClassName = [className ml_superClassNameFromSelf];
+        NSString *chainSuperClassName = MLCSuperClassNameOfClassName(className);
         NSArray *hfileImportFileNames = @[[NSString stringWithFormat:@"MLChain4%@", className]];
         
         NSArray *mFileImportFileNames = @[[className stringByAppendingString:@"+MLChain"], @"NSObject+MLChain"];
-        ML_CreateCodeModel *model =
-        [ML_CreateCodeModel modelWithClassName:className
+        MLCCreateCodeModel *model =
+        [MLCCreateCodeModel modelWithClassName:className
                                 superclassName:chainSuperClassName
                           hFileImportFileNames:hfileImportFileNames
-                            hFileContentString:chainMethodString
+                            hFileContentString:ChainMethodConntenting
                           mFileImportFileNames:mFileImportFileNames
                             mFileContentString:chaingImplementationString
-                                    moreConfig:^(ML_CreateCodeModel *modelOfSelf) {
+                                    moreConfig:^(MLCCreateCodeModel *modelOfSelf) {
                                         modelOfSelf.categoryName = @"MLChain";
                                     }];
         
@@ -121,7 +384,7 @@
         [[NSFileManager defaultManager] writefileString:model.mFileResultString ToFileWithDiretory:XcodeCreateCodeDirectory fileName:model.fileName  fileType:kML_CreateCodeFileType_m moveToTrashWhenFileExists:YES];
     }
     
-
+    
 }
 
 + (void)ml_createChainFileOfMLChainHeaderFileWithClassNames:(NSArray *)classNames
@@ -133,7 +396,6 @@
     
     NSMutableArray *hFileImportFileNames = [[NSMutableArray alloc] init];
     
-    [hFileImportFileNames addObject:@"NSObject+ChainInvocation"];
     for (NSString *className in classNames) {
         [hFileImportFileNames addObject:[NSString stringWithFormat:@"MLChain4%@", className]];
         [hFileImportFileNames addObject:[NSString stringWithFormat:@"%@+MLChain", className]];
@@ -141,45 +403,109 @@
     
     
     
-    ML_CreateCodeModel *model =
-    [ML_CreateCodeModel modelWithClassName:nil
+    MLCCreateCodeModel *model =
+    [MLCCreateCodeModel modelWithClassName:nil
                             superclassName:nil
                       hFileImportFileNames:hFileImportFileNames
                         hFileContentString:nil
                       mFileImportFileNames:nil
                         mFileContentString:nil
-                                moreConfig:^(ML_CreateCodeModel *modelOfSelf) {
+                                moreConfig:^(MLCCreateCodeModel *modelOfSelf) {
                                     
                                 }];
     
     NSString *hFileString = [NSString stringWithFormat:@"%@\n#ifndef ML_Chain_h\n#define ML_Chain_h\n%@\n#endif", model.hFileTopString, model.hFileImportString];
-    [[NSFileManager defaultManager] writefileString:hFileString ToFileWithDiretory:XcodeCreateCodeDirectory fileName:@"MLChain" fileType:kML_CreateCodeFileType_h moveToTrashWhenFileExists:YES];
-
+    [[NSFileManager defaultManager] writefileString:hFileString
+                                 ToFileWithDiretory:XcodeCreateCodeDirectory
+                                           fileName:@"MLChain"
+                                           fileType:kML_CreateCodeFileType_h
+                          moveToTrashWhenFileExists:YES];
+    
 }
 
-+ (NSArray *)ml_classNamesToStringWithClassNames:(NSArray *)classNames
+
+/**
+ 要生成的类的类名
+ 
+ @param classNames <#classNames description#>
+ @param superClassTogether <#superClassTogether description#>
+ @return <#return value description#>
+ */
++ (NSArray *)mlc_classNamesToStringWithClassNames:(NSArray *)classNames uperClassTogether:(BOOL)superClassTogether
 {
-    NSMutableArray *resultArr = [[NSMutableArray alloc] init];
+    NSMutableSet *mutClassSet = [[NSMutableSet alloc] init];
     for (id obj in classNames) {
         NSString *className;
         if ([obj isKindOfClass:[NSString class]]) {
             className = obj;
-        }else{
+        }else if (object_isClass(obj)){
             className = NSStringFromClass(obj);
+        }else{
+            assert(@"无法识别该对象");
         }
-        [resultArr addObject:className];
         
-        if (![resultArr containsObject:className]) {
-            [resultArr addObject:className];
-        }
-     
-        for ( NSString *superClassName = [className ml_superClassNameFromSelf]; superClassName != nil; superClassName = [superClassName ml_superClassNameFromSelf]) {
-            if (![resultArr containsObject:superClassName]) {
-                [resultArr addObject:superClassName];
+        [mutClassSet addObject:className];
+        
+        if (superClassTogether) {
+            for ( NSString *superClassName = MLCSuperClassNameOfClassName(className); superClassName != nil; superClassName = MLCSuperClassNameOfClassName(superClassName)) {
+                
+                [mutClassSet addObject:superClassName];
+                
             }
         }
         
+        
+        
     }
-    return resultArr;
+    NSMutableArray *mutArr = [[NSMutableArray alloc] init];
+    for (id obj in mutClassSet) {
+        [mutArr addObject:obj];
+    }
+    return mutArr;
+}
+#pragma mark - File Content Helper
+
+/**
+ h文件内容
+ 
+ @param className <#className description#>
+ @return <#return value description#>
+ */
++ (NSString *)_hFileContentStrWithClassName:(NSString *)className{
+    
+    NSString *hFileContentString = @"";
+    
+    NSString *property = @"chainObject";
+    if ([className isEqualToString:@"NSObject"]) {
+        
+        hFileContentString  = [NSString stringWithFormat:@"@property (nonatomic, strong)id %@;\n", property];
+    }
+    
+    NSString *ChainMethodConntenting = [NSClassFromString(className) mlc_methodStringsOfNoReturnSelName];
+    hFileContentString = [hFileContentString stringByAppendingString:ChainMethodConntenting];
+    return hFileContentString;
+}
+
+
+/**
+ m文件内容
+ 
+ @param className <#className description#>
+ @return <#return value description#>
+ */
++ (NSString *)_mFileContentStrWithClassName:(NSString *)className{
+    
+    NSString *mfileContentString;
+    if ([className isEqualToString:@"NSObject"]) {
+    
+        
+    }else{
+        
+        mfileContentString = @"+ (void)load{\n\
+        \n  [self mlc_setUpMethodDynamically];\
+        \n}";
+    }
+    return mfileContentString;
+    
 }
 @end

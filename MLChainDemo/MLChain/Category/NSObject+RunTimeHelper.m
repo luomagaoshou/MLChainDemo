@@ -12,30 +12,28 @@
 @implementation NSObject (RunTimeHelper)
 
 
-+ (NSArray *)getIvarList
++ (NSArray *)arrayOfIvars
 {
     unsigned int count = 0;
-    //获取类中所有属性名
     Ivar *ivar = class_copyIvarList([self class], &count);
-    NSMutableArray *propertyNameArray = [[NSMutableArray alloc] init];
+    NSMutableArray *ivarNameArray = [[NSMutableArray alloc] init];
     for (int i = 0; i<count; i++) {
         Ivar iva = ivar[i];
         const char *name = ivar_getName(iva);
         NSString *strName = [NSString stringWithUTF8String:name];
-        [propertyNameArray addObject:strName];
+        [ivarNameArray addObject:strName];
         
     }
     
     free(ivar);
-    return propertyNameArray;
+    return ivarNameArray;
     
 }
 
 
-+ (NSArray *)getPropertyList
++ (NSArray *)arrayOfProperties
 {
     unsigned int count = 0;
-    //获取类中所有成员变量
     objc_property_t *properties = class_copyPropertyList(self, &count);
     
     NSMutableArray *propertyNameArray = [[NSMutableArray alloc] init];
@@ -52,21 +50,15 @@
     
 }
 
-+ (NSArray *)getInstanceMethodList
+
++ (NSArray *)arrayOfInstanceMethods
 {
     unsigned int count = 0;
-    Method *methodList = class_copyMethodList([self class], &count);
+    Method *methodList = class_copyMethodList(self, &count);
     NSMutableArray *methods = [[NSMutableArray alloc] init];
-
+    
     for (NSInteger i = 0; i < count; i++) {
         SEL selector = method_getName(methodList[i]);
-        Method method = class_getInstanceMethod([self class], selector);
-        
-     
-        if (!method) {
-            continue;
-        }
-        
         NSString *selString = NSStringFromSelector(selector);
         [methods addObject:selString];
     }
@@ -75,39 +67,27 @@
     return methods;
 }
 
-+ (NSArray *)getClassMethodList
++ (NSArray *)arrayOfClassMethods
 {
-
+    
     unsigned int count = 0;
-    Method *methodList = class_copyMethodList(object_getClass(self), &count);
+    Method *methodList = class_copyMethodList(objc_getMetaClass(class_getName(self)), &count);
     NSMutableArray *methods = [[NSMutableArray alloc] init];
-   
+    
     for (NSInteger i = 0; i < count; i++) {
         SEL selector = method_getName(methodList[i]);
-             const char * type = method_getTypeEncoding(methodList[i]);
-        Method classMethod = class_getClassMethod(object_getClass(self), selector);
-        if (!classMethod) {
-            continue;
-        }
-        
         NSString *methodString = NSStringFromSelector(selector);
         [methods addObject:methodString];
     }
-  
+    
     free(methodList);
     return methods;
 }
 
-
-+ (NSArray *)getProtocolList
-{
++ (NSArray *)arrayOfProtocols{
     
-     Protocol * protocols1 = objc_getProtocol("NSCoding");
     unsigned int count = 0;
-    Protocol * __unsafe_unretained *protocols = class_copyProtocolList(self, &count);
-    struct objc_category *categories;
-
-   
+    Protocol *__unsafe_unretained *protocols = class_copyProtocolList(self, &count);
     NSMutableArray *protocolArray = [[NSMutableArray alloc] init];
     for (int i = 0; i < count; i++) {
         [protocolArray addObject:[NSString stringWithUTF8String:protocol_getName(protocols[i])]];
@@ -118,10 +98,10 @@
     free(protocols);
     return protocolArray;
 }
-+ (NSArray *)getSubClassList
++ (NSArray *)arrayOfSubClasses
 {
-     NSMutableArray * classList = [NSMutableArray array];
-    NSArray *allClassList = [self getClassListWithPrefixs:@[@"NS", @"UI", @"CA"]];
+     NSMutableArray *classList = [NSMutableArray array];
+    NSArray *allClassList = [self arrayOfClassesWithPrefixs:@[@"NS", @"UI", @"CA"]];
     
     
     for (NSString *className in allClassList) {
@@ -132,11 +112,11 @@
     }
     return classList;
 }
-+ (NSArray *)getClassListWithPrefixs:(NSArray *)prefixs
++ (NSArray *)arrayOfClassesWithPrefixs:(NSArray *)prefixs
 {
     
-    NSMutableArray * classList = [NSMutableArray array];
-    NSArray *allClassList = [self getAllClassList];
+    NSMutableArray *classList = [NSMutableArray array];
+    NSArray *allClassList = [self arrayOfAllClass];
     for (NSString *className in allClassList) {
        
         for (NSString *prefix in prefixs) {
@@ -152,11 +132,11 @@
     }
     return classList;
 }
-+ (NSArray *)getAllClassList {
-    NSMutableArray * classList = [NSMutableArray array];
++ (NSArray *)arrayOfAllClass {
+    NSMutableArray *classList = [NSMutableArray array];
     
     unsigned int classesCount = 0;
-    Class * classes = objc_copyClassList(&classesCount);
+    Class *classes = objc_copyClassList(&classesCount);
     
     
     for ( int i = 0; i < classesCount; ++i) {
@@ -169,7 +149,7 @@
     return classList;
 }
 
-+ (NSArray *)getPropertyAttributeList
++ (NSArray *)arrayOfPropertyAttributes
 {
     
         unsigned int count = 0;
@@ -195,21 +175,10 @@
 
 }
 
-- (id)createSameObject
-{
 
-    id object =  [[[self class] alloc] init];
-    NSArray *urlConfigProperties = [[self class] getPropertyList];
-    for (NSInteger i = 0; i< urlConfigProperties.count; i++) {
-        if ([self valueForKey:urlConfigProperties[i]]) {
-            [object setValue:[self valueForKey:urlConfigProperties[i]] forKey:urlConfigProperties[i]];
-        }
-    }
-    return object;
-}
 - (void)setObjectPropertyAllKeyValueNil
 {
-    NSArray *properties = [[self class] getPropertyList];
+    NSArray *properties = [[self class] arrayOfProperties];
    
     for (NSInteger i = 0; i < properties.count; i++) {
         if ([self valueForKey:properties[i]]) {
@@ -227,9 +196,9 @@
 }
 #pragma mark - ========= 拼接 =========
 
-- (NSDictionary *)getPropertyKeyValueOnlyHaveValueDictionary
+- (NSDictionary *)dictionaryOfPropertyKeyValues
 {
-    NSArray *properties = [[self class] getPropertyList];
+    NSArray *properties = [[self class] arrayOfProperties];
     NSMutableDictionary *keyValueDictionary = [[NSMutableDictionary alloc] init];
     for (NSInteger i = 0; i < properties.count; i++) {
         if ([self valueForKey:properties[i]]) {
@@ -238,22 +207,90 @@
     }
     return keyValueDictionary;
 }
-+ (NSDictionary *)getPropertyDictionaryJoinedWithIvarList:(NSArray *)ivarList model:(id)model
+
+- (NSDictionary *)dictionaryWithIvarList:(NSArray *)ivarList
 {
     //取Model成员变量拼接字典
     NSMutableDictionary *postParameter = [[NSMutableDictionary alloc] init];
     for (NSInteger i = 0 ; i< ivarList.count; i++) {
         
-        NSString *propertyName = ivarList[i];
-        id propertyValue = [model valueForKey:propertyName];
-        if (!propertyValue) {
-            propertyValue = @"";
+        NSString *ivarName = ivarList[i];
+        id value = [self valueForKey:ivarName];
+        if (value) {
+            if ([ivarName hasPrefix:@"_"]) {
+                ivarName = [ivarName substringFromIndex:1];
+            }
+            [postParameter addEntriesFromDictionary:@{ivarName:value}];
         }
-        NSString *actualPropertyName = [propertyName substringFromIndex:1];
-        [postParameter addEntriesFromDictionary:@{actualPropertyName:propertyValue}];
+      
         
     }
     return postParameter;
+}
+
+
++ (void)ml_swizzleInstanceMethodSEL:(SEL)originalSEL withSEL:(SEL)swizzledSEL {
+
+    
+    Class class = [self class];
+    
+    Method originalMethod = class_getInstanceMethod(class, originalSEL);
+    Method swizzledMethod = class_getInstanceMethod(class, swizzledSEL);
+    
+    BOOL didAddMethod =
+    class_addMethod(class,
+                    originalSEL,
+                    method_getImplementation(swizzledMethod),
+                    method_getTypeEncoding(swizzledMethod));
+    
+    if (didAddMethod) {
+        class_replaceMethod(class,
+                            swizzledSEL,
+                            method_getImplementation(originalMethod),
+                            method_getTypeEncoding(originalMethod));
+    } else {
+        method_exchangeImplementations(originalMethod, swizzledMethod);
+    }
+
+}
+
++ (void)ml_swizzleClassMethodSEL:(SEL)originalSEL withSEL:(SEL)swizzledSEL {
+    
+        
+    Method originalMethod = class_getClassMethod(object_getClass(self), originalSEL);
+    Method swizzledMethod = class_getClassMethod(object_getClass(self), swizzledSEL);
+    Class metaClass = objc_getMetaClass(class_getName([self class]));
+    BOOL didAddMethod =
+    class_addMethod(metaClass,
+                    originalSEL,
+                    method_getImplementation(swizzledMethod),
+                    method_getTypeEncoding(swizzledMethod));
+  
+    if(!didAddMethod) {
+
+        method_exchangeImplementations(originalMethod, swizzledMethod);
+    }
+
+    
+    
+}
+
+#pragma mark - ========= Setter & Getter =========
+- (void)setOperationIdentifier:(NSString *)operationIdentifier
+{
+    objc_setAssociatedObject(self, @selector(operationIdentifier), operationIdentifier, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+- (NSString *)operationIdentifier
+{
+    return objc_getAssociatedObject(self, @selector(operationIdentifier));
+}
+- (void)setFeatureIdentifier:(NSString *)featureIdentifier
+{
+    objc_setAssociatedObject(self, @selector(featureIdentifier), featureIdentifier, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+- (NSString *)featureIdentifier
+{
+    return objc_getAssociatedObject(self, @selector(featureIdentifier));
 }
 
 @end

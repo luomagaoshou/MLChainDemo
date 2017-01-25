@@ -2,36 +2,39 @@
 //  UIView.m
 //  MLChainDemo
 //  
-//  Created by 赖妙龙 on 2016/06/03.
-//  Copyright © 2016年 myCompany. All rights reserved.
+//  Created by 赖妙龙 on 2017/01/25.
+//  Copyright © 2017年 myCompany. All rights reserved.
 //  
+
 
 
 #import "UIView+MLChain.h"
 #import "NSObject+MLChain.h"
 @implementation UIView(MLChain)
-+ (MLChain4UIView *)ml_make
-{
-
-return (id)[super ml_make];
-
++ (MLChain4UIView *)mlc_make {         
+         
+   return (id)[super mlc_make];         
+         
 }
-
-- (MLChain4UIView *)ml_make
-{
-
-return (id)[super ml_make];
-
+- (MLChain4UIView *)mlc_make {         
+         
+   return (id)[super mlc_make];         
+         
 }
-
-- (MLChain4UIView *)ml_makeConfigs:(void(^)(MLChain4UIView *maker))block
-{
-
-MLChain4UIView *chainMaker = self.ml_make;
-block(chainMaker);
-return chainMaker;
-
++ (MLChain4UIView *)mlc_makeConfigs:(void(^)(MLChain4UIView *maker))block{         
+         
+   MLChain4UIView *chainBridge = self.mlc_make;         
+   block(chainBridge);         
+   return chainBridge;         
+         
 }
-
+- (MLChain4UIView *)mlc_makeConfigs:(void(^)(MLChain4UIView *maker))block{         
+         
+   MLChain4UIView *chainBridge = self.mlc_make;         
+   block(chainBridge);         
+   return chainBridge;         
+         
+}
 
 @end
+
